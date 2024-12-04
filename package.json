@@ -1,0 +1,19 @@
+{
+  "name": "money_management",
+  "version": "1.0.0",
+  "description": "money app",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron ."
+  },
+  "keywords": [
+    "money",
+    "managerment"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "electron": "^32.2.0"
+  }
+}
