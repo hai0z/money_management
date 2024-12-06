@@ -24,7 +24,15 @@ const AddFinace = () => {
         </label>
       </div>
       <div className="mt-4 w-1/2">
-        <p>Hạng mục</p>
+        <div className="flex justify-between items-center">
+          <p>Hạng mục</p>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => document.getElementById("category-drawer")?.click()}
+          >
+            Xem tất cả
+          </button>
+        </div>
         <div className="grid grid-cols-4 gap-4 mt-4">
           {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
             <div className="card compact card-bordered bg-primary/5 cursor-pointer hover:ring-[3px] hover:ring-primary hover:shadow-lg">
@@ -36,6 +44,18 @@ const AddFinace = () => {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Drawer */}
+      <div className="drawer drawer-end">
+        <input id="category-drawer" type="checkbox" className="drawer-toggle" />
+        <div className="drawer-side z-[999]">
+          <label htmlFor="category-drawer" className="drawer-overlay"></label>
+          <div className="menu p-4 w-96 min-h-full bg-base-200 z-[999]">
+            <h3 className="font-bold text-lg mb-4">Tất cả hạng mục</h3>
+            {/* Add your categories list here */}
+          </div>
         </div>
       </div>
     </div>

@@ -8,7 +8,7 @@ const currentDate = dayjs().format("dddd, DD/MM/YYYY");
 
 const NavBar = () => {
   return (
-    <div className="sticky top-0 z-50">
+    <div className="sticky top-0 z-10">
       <div
         className="w-full flex flex-row items-center justify-end backdrop-blur-3xl"
         style={{
