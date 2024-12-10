@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 const budgetController = {
   async createBudget(req, res) {
     try {
-      const { userId, amount, startDate, endDate } = req.body;
+      const { userId, amount, startDate, endDate, name } = req.body;
 
       const budget = await prisma.budget.create({
         data: {
@@ -12,6 +12,7 @@ const budgetController = {
           amount: parseFloat(amount),
           startDate: new Date(startDate),
           endDate: new Date(endDate),
+          name,
         },
       });
 
@@ -119,6 +120,10 @@ const budgetController = {
           transactions: {
             include: {
               category: true,
+              wallet: true,
+            },
+            orderBy: {
+              transactionDate: "desc",
             },
           },
         },
@@ -141,10 +146,25 @@ const budgetController = {
         },
       });
 
+      // Get all transactions for this budget
+      const transactions = await prisma.transaction.findMany({
+        where: {
+          budgetId: budget.id,
+        },
+        include: {
+          category: true,
+          wallet: true,
+        },
+        orderBy: {
+          transactionDate: "desc",
+        },
+      });
+
       const budgetWithProgress = {
         ...budget,
         spent: spent._sum.amount || 0,
         remaining: parseFloat(budget.amount) - (spent._sum.amount || 0),
+        transactions: transactions,
       };
 
       res.json(budgetWithProgress);

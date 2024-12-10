@@ -8,13 +8,16 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
-  password  String
-  email     String?  @unique
-  fullName  String?  @map("full_name")
-  createdAt DateTime @default(now()) @map("created_at")
-
+  id           Int           @id @default(autoincrement())
+  username     String        @unique
+  password     String
+  email        String?       @unique
+  fullName     String?       @map("full_name")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  phone        String?       @map("phone")
+  avatar       String?       @map("avatar")
+  address      String?       @map("address")
   // Relations
   transactions Transaction[]
   budgets      Budget[]
@@ -67,6 +70,7 @@ model Budget {
   amount    Decimal  @db.Decimal(15, 2)
   startDate DateTime @map("start_date")
   endDate   DateTime @map("end_date")
+  name      String
 
   // Relations
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -76,11 +80,12 @@ model Budget {
 }
 
 model Wallet {
-  id       Int     @id @default(autoincrement())
-  userId   Int     @map("user_id")
-  name     String
-  balance  Decimal @default(0) @db.Decimal(15, 2)
-  currency String  @default("VND") @db.VarChar(3)
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  name      String
+  balance   Decimal  @default(0) @db.Decimal(15, 2)
+  currency  String   @default("VND") @db.VarChar(3)
+  createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)

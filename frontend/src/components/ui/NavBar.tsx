@@ -1,14 +1,18 @@
 import React from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
-import AppLogo from "../../assets/image/wallet.png";
 import { Minus, Square, X } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
 dayjs.locale("vi");
 const currentDate = dayjs().format("dddd, DD/MM/YYYY");
 
+const AppLogo = new URL("../../assets/image/wallet.png", import.meta.url).href;
+
 const NavBar = () => {
+  const { logout } = useAuth();
+
   return (
-    <div className="sticky top-0 z-10">
+    <div className="sticky top-0 z-[50]">
       <div
         className="w-full flex flex-row items-center justify-end backdrop-blur-3xl"
         style={{
@@ -76,7 +80,7 @@ const NavBar = () => {
                 <a>Settings</a>
               </li>
               <li>
-                <a>Logout</a>
+                <a onClick={logout}>Logout</a>
               </li>
             </ul>
           </div>

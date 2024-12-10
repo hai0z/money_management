@@ -7,6 +7,27 @@ export default {
   plugins: [require("daisyui")],
   daisyui: {
     themes: [
+      {
+        vnua: {
+          primary: "#65a30d",
+
+          secondary: "#92400e",
+
+          accent: "#facc15",
+
+          neutral: "#2c1f2b",
+
+          "base-100": "#e5e7eb",
+
+          info: "#00d4ff",
+
+          success: "#00bc5a",
+
+          warning: "#ea580c",
+
+          error: "#f53b4c",
+        },
+      },
       "light",
       "dark",
       "cupcake",

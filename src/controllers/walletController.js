@@ -38,6 +38,35 @@ const walletController = {
     }
   },
 
+  async getTotalBalance(req, res) {
+    try {
+      const { userId } = req.params;
+      const wallets = await prisma.wallet.findMany({
+        where: { userId: parseInt(userId) },
+        select: {
+          balance: true,
+          currency: true,
+        },
+      });
+
+      const totalBalance = wallets.reduce(
+        (acc, wallet) => acc + parseFloat(wallet.balance),
+        0
+      );
+      res.json({
+        totalBalance,
+        wallets: wallets.map((w) => ({
+          balance: w.balance,
+          currency: w.currency,
+          id: w.id,
+          name: w.name,
+        })),
+      });
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  },
+
   async getWallet(req, res) {
     try {
       const { id } = req.params;

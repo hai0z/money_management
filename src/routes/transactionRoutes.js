@@ -12,5 +12,7 @@ router.get(
   "/user/:userId/period",
   transactionController.getTransactionsByPeriod
 );
+router.get("/wallet/:walletId", transactionController.getTransactionsByWallet);
 
+router.get("/analyze/user/:userId", transactionController.analyzeTransactions);
 module.exports = router;

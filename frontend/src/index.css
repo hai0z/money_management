@@ -9,3 +9,7 @@ html {
 .drag {
   -webkit-app-region: drag;
 }
+.scrollbar-none {
+  scrollbar-gutter: stable;
+  scrollbar-width: none;
+}

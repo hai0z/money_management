@@ -29,7 +29,7 @@ const userController = {
       });
       // Add your authentication logic here
       if (user && user.password === password) {
-        res.json({ message: "Login successful" });
+        res.json({ message: "Login successful", user });
       } else {
         res.status(401).json({ error: "Invalid username or password" });
       }
