@@ -9,12 +9,17 @@ import {
   Filter,
   TrendingDown,
   Target,
+  AlertTriangle,
+  CheckCircle,
+  DownloadCloud,
+  FileSpreadsheet,
 } from "lucide-react";
 import { formatCurrency } from "../../../utils/formatters";
 import { useAuth } from "../../../contexts/AuthContext";
 import ReactApexChart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
 import { useNavigate } from "react-router-dom";
+import * as XLSX from "xlsx";
 
 const IncomeExpenseReport = () => {
   const navigate = useNavigate();
@@ -204,8 +209,174 @@ const IncomeExpenseReport = () => {
     return 0;
   };
 
+  const getSpendingTrends = () => {
+    if (!report) return null;
+
+    const totalIncome = report.totals?.totalIncome || 0;
+    const totalExpense = Math.abs(report.totals?.totalExpense || 0);
+    const savingsRate = ((totalIncome - totalExpense) / totalIncome) * 100;
+
+    const expenseCategories =
+      report.categoryAnalysis?.filter((cat: any) => cat.type === "expense") ||
+      [];
+
+    const topExpenseCategory =
+      expenseCategories.length > 0
+        ? expenseCategories.reduce((prev: any, curr: any) =>
+            Math.abs(prev.total) > Math.abs(curr.total) ? prev : curr
+          )
+        : null;
+
+    const trends: any = [];
+
+    // Phân tích tỷ lệ tiết kiệm
+    if (savingsRate >= 50) {
+      trends.push({
+        icon: <CheckCircle className="w-6 h-6 text-success" />,
+        title: "Tỷ lệ tiết kiệm tốt",
+        description: `Bạn đang tiết kiệm được ${savingsRate.toFixed(
+          1
+        )}% thu nhập`,
+        type: "success",
+      });
+    } else if (savingsRate < 0) {
+      trends.push({
+        icon: <AlertTriangle className="w-6 h-6 text-error" />,
+        title: "Chi tiêu vượt quá thu nhập",
+        description: "Bạn đang chi tiêu nhiều hơn thu nhập",
+        type: "error",
+      });
+    }
+
+    // Phân tích danh mục chi tiêu lớn nhất
+    if (topExpenseCategory) {
+      const percentOfTotal =
+        (Math.abs(topExpenseCategory.total) / totalExpense) * 100;
+      if (percentOfTotal > 40) {
+        trends.push({
+          icon: <AlertTriangle className="w-6 h-6 text-warning" />,
+          title: `Chi tiêu tập trung vào ${topExpenseCategory.name}`,
+          description: `${percentOfTotal.toFixed(1)}% chi tiêu dành cho ${
+            topExpenseCategory.name
+          }`,
+          type: "warning",
+        });
+      }
+    }
+
+    // Phân tích xu hướng theo thời gian
+    const timeAnalysis = Object.values(report.timeAnalysis || {});
+    if (timeAnalysis.length >= 2) {
+      const recentExpenses = timeAnalysis
+        .slice(-3)
+        .reduce((sum: number, day: any) => sum + Math.abs(day.expense || 0), 0);
+      const previousExpenses = timeAnalysis
+        .slice(-6, -3)
+        .reduce((sum: number, day: any) => sum + Math.abs(day.expense || 0), 0);
+
+      if (recentExpenses > previousExpenses * 1.2) {
+        trends.push({
+          icon: <TrendingUp className="w-6 h-6 text-warning" />,
+          title: "Chi tiêu gia tăng",
+          description: "Chi tiêu có xu hướng tăng trong thời gian gần đây",
+          type: "warning",
+        });
+      }
+    }
+
+    return trends;
+  };
+
+  const exportToExcel = () => {
+    if (!report) return;
+
+    // Tạo worksheet cho tổng quan
+    const overviewData = [
+      ["BÁO CÁO THU CHI"],
+      [
+        "Kỳ báo cáo",
+        selectedPeriod === "month"
+          ? "Tháng này"
+          : selectedPeriod === "year"
+          ? "Năm nay"
+          : "Tùy chỉnh",
+      ],
+      [""],
+      ["TỔNG QUAN"],
+      ["Tổng thu nhập", formatCurrency(report.totals?.totalIncome)],
+      ["Tổng chi tiêu", formatCurrency(Math.abs(report.totals?.totalExpense))],
+      ["Số dư", formatCurrency(report.totals?.netAmount)],
+      [
+        "Thu nhập trung bình/ngày",
+        formatCurrency(
+          report.totals?.totalIncome / getDaysInRange(selectedPeriod)
+        ),
+      ],
+      [
+        "Chi tiêu trung bình/ngày",
+        formatCurrency(
+          Math.abs(report.totals?.totalExpense) / getDaysInRange(selectedPeriod)
+        ),
+      ],
+    ];
+
+    // Tạo worksheet cho thu nhập
+    const incomeData = [
+      ["CHI TIẾT THU NHẬP"],
+      ["Danh mục", "Số giao dịch", "Tổng tiền", "Trung bình/ngày"],
+      ...report.categoryAnalysis
+        ?.filter((cat: any) => cat.type === "income")
+        .map((cat: any) => [
+          cat.name,
+          cat.count,
+          formatCurrency(Math.abs(cat.total)),
+          formatCurrency(Math.abs(cat.total / getDaysInRange(selectedPeriod))),
+        ]),
+    ];
+
+    // Tạo worksheet cho chi tiêu
+    const expenseData = [
+      ["CHI TIẾT CHI TIÊU"],
+      ["Danh mục", "Số giao dịch", "Tổng tiền", "Trung bình/ngày"],
+      ...report.categoryAnalysis
+        ?.filter((cat: any) => cat.type === "expense")
+        .map((cat: any) => [
+          cat.name,
+          cat.count,
+          formatCurrency(Math.abs(cat.total)),
+          formatCurrency(Math.abs(cat.total / getDaysInRange(selectedPeriod))),
+        ]),
+    ];
+
+    // Tạo workbook và thêm các worksheet
+    const wb = XLSX.utils.book_new();
+    const ws1 = XLSX.utils.aoa_to_sheet(overviewData);
+    const ws2 = XLSX.utils.aoa_to_sheet(incomeData);
+    const ws3 = XLSX.utils.aoa_to_sheet(expenseData);
+
+    // Thêm style cho các worksheet
+    ["!cols", "!rows"].forEach((prop) => {
+      ws1[prop] = [{ wch: 30 }, { wch: 20 }];
+      ws2[prop] = [{ wch: 30 }, { wch: 15 }, { wch: 20 }, { wch: 20 }];
+      ws3[prop] = [{ wch: 30 }, { wch: 15 }, { wch: 20 }, { wch: 20 }];
+    });
+
+    // Thêm các worksheet vào workbook
+    XLSX.utils.book_append_sheet(wb, ws1, "Tổng quan");
+    XLSX.utils.book_append_sheet(wb, ws2, "Thu nhập");
+    XLSX.utils.book_append_sheet(wb, ws3, "Chi tiêu");
+
+    // Tạo tên file với timestamp
+    const fileName = `bao-cao-thu-chi-${
+      new Date().toISOString().split("T")[0]
+    }.xlsx`;
+
+    // Xuất file
+    XLSX.writeFile(wb, fileName);
+  };
+
   return (
-    <div className="bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 min-h-screen">
+    <div className="bg-base-100 min-h-screen">
       <div className="max-w-7xl mx-auto p-8">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -224,22 +395,62 @@ const IncomeExpenseReport = () => {
               Báo cáo thu chi
             </h2>
           </div>
-          <div className="stats shadow bg-base-100">
-            <div className="stat">
-              <div className="stat-figure text-primary">
-                <Calendar className="w-8 h-8" />
-              </div>
-              <div className="stat-title">Kỳ báo cáo</div>
-              <div className="stat-value text-lg">
-                {selectedPeriod === "month"
-                  ? "Tháng này"
-                  : selectedPeriod === "year"
-                  ? "Năm nay"
-                  : "Tùy chỉnh"}
+          <div className="flex items-center gap-4">
+            <button onClick={exportToExcel} className="btn btn-ghost gap-2">
+              <DownloadCloud className="w-4 h-4" />
+              Xuất Excel
+            </button>
+            <div className="stats shadow bg-base-100">
+              <div className="stat">
+                <div className="stat-figure text-primary">
+                  <Calendar className="w-8 h-8" />
+                </div>
+                <div className="stat-title">Kỳ báo cáo</div>
+                <div className="stat-value text-lg">
+                  {selectedPeriod === "month"
+                    ? "Tháng này"
+                    : selectedPeriod === "year"
+                    ? "Năm nay"
+                    : "Tùy chỉnh"}
+                </div>
               </div>
             </div>
           </div>
         </motion.div>
+
+        {/* Xu hướng chi tiêu */}
+        {getSpendingTrends() && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 grid grid-cols-3 gap-4"
+          >
+            {getSpendingTrends()?.map((trend, index) => (
+              <div
+                key={index}
+                className={`card bg-base-100 shadow-xl border-l-4 ${
+                  trend.type === "success"
+                    ? "border-success"
+                    : trend.type === "warning"
+                    ? "border-warning"
+                    : "border-error"
+                }`}
+              >
+                <div className="card-body">
+                  <div className="flex items-center gap-3">
+                    {trend.icon}
+                    <div>
+                      <h3 className="font-bold">{trend.title}</h3>
+                      <p className="text-base-content/60">
+                        {trend.description}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        )}
 
         {/* Filters */}
         <motion.div
@@ -618,24 +829,28 @@ const IncomeExpenseReport = () => {
                       <td colSpan={2}>Tổng cộng</td>
                       <td className="text-success text-right">
                         {formatCurrency(
-                          report?.categoryAnalysis
-                            ?.filter((cat: any) => cat.type === "income")
-                            .reduce(
-                              (sum: number, cat: any) =>
-                                sum + Math.abs(cat.total),
-                              0
-                            )
+                          (
+                            report?.categoryAnalysis?.filter(
+                              (cat: any) => cat.type === "income"
+                            ) || []
+                          ).reduce(
+                            (sum: number, cat: any) =>
+                              sum + Math.abs(cat.total),
+                            0
+                          )
                         )}
                       </td>
                       <td className="text-right">
                         {formatCurrency(
-                          report?.categoryAnalysis
-                            ?.filter((cat: any) => cat.type === "income")
-                            .reduce(
-                              (sum: number, cat: any) =>
-                                sum + Math.abs(cat.dailyAverage),
-                              0
-                            )
+                          (
+                            report?.categoryAnalysis?.filter(
+                              (cat: any) => cat.type === "income"
+                            ) || []
+                          ).reduce(
+                            (sum: number, cat: any) =>
+                              sum + Math.abs(cat.dailyAverage),
+                            0
+                          )
                         )}
                       </td>
                     </tr>

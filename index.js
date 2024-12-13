@@ -13,8 +13,8 @@ const app = express();
 const port = 3000;
 
 // Middleware để parse request body
-app.use(express.json()); // Parse JSON bodies
-app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
+app.use(express.json({ limit: "50mb" })); // Parse JSON bodies with increased limit
+app.use(express.urlencoded({ extended: true, limit: "50mb" })); // Parse URL-encoded bodies with increased limit
 app.use(cors());
 
 // Test middleware để log request body

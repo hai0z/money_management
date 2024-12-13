@@ -22,6 +22,11 @@ import WalletDetail from "../pages/Wallet/WalletDetail";
 import BudgetDetail from "../pages/Budget/BudgetDetail";
 import EditWallet from "../pages/Wallet/EditWallet";
 import UserInfo from "../pages/User/UserInfo";
+import EditBudget from "../pages/Budget/EditBudget";
+import EditUserInfo from "../pages/User/EditUserInfo";
+import ChangePassword from "../pages/User/ChangePassword";
+import Register from "../pages/Auth/Register";
+import { Toaster } from "react-hot-toast";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuth();
@@ -42,7 +47,17 @@ const router = createBrowserRouter([
     path: "/login",
     element: (
       <AuthProvider>
+        <Toaster />
         <LoginPage />
+      </AuthProvider>
+    ),
+  },
+  {
+    path: "/register",
+    element: (
+      <AuthProvider>
+        <Toaster />
+        <Register />
       </AuthProvider>
     ),
   },
@@ -93,6 +108,10 @@ const router = createBrowserRouter([
           {
             path: "/budgets/:id",
             element: <BudgetDetail />,
+          },
+          {
+            path: "/budgets/edit/:id",
+            element: <EditBudget />,
           },
         ],
       },
@@ -156,6 +175,14 @@ const router = createBrowserRouter([
           {
             path: "/user",
             element: <UserInfo />,
+          },
+          {
+            path: "/user/edit/:id",
+            element: <EditUserInfo />,
+          },
+          {
+            path: "/user/change-password",
+            element: <ChangePassword />,
           },
         ],
       },

@@ -19,6 +19,7 @@ import {
   ArrowDownRight,
   Plus,
   Filter,
+  Receipt,
 } from "lucide-react";
 import BarChart from "../../components/ui/BarChart";
 import DonutChart from "../../components/ui/DonutChart";
@@ -27,10 +28,10 @@ import { formatCurrency } from "../../utils/formatters";
 import { Link, useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import { motion } from "framer-motion";
+import { useAppStore } from "../../state/appSetting";
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const [showBalance, setShowBalance] = React.useState(true);
   const [budgets, setBudgets] = React.useState<any[]>([]);
   const [period, setPeriod] = React.useState("month");
   const { user } = useAuth();
@@ -39,7 +40,7 @@ const HomePage = () => {
   const [totalExpense, setTotalExpense] = React.useState(0);
   const [userTransactions, setUserTransactions] = React.useState<any[]>([]);
   const [error, setError] = React.useState<string | null>(null);
-
+  const { settings, setShowBalance } = useAppStore();
   const getTotalBalance = async () => {
     try {
       const response = await fetch(
@@ -126,7 +127,7 @@ const HomePage = () => {
   }
 
   return (
-    <div className="w-full relative overflow-hidden min-h-[calc(100vh-6rem)] bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
+    <div className="w-full relative overflow-hidden min-h-[calc(100vh-6rem)] bg-base-100">
       <div className="px-4 h-full w-full my-4">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -144,7 +145,7 @@ const HomePage = () => {
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
-            className="card bg-base-100 shadow-lg"
+            className="card bg-gradient-to-br from-base-100  to-primary/5 border-2 border-primary/20"
           >
             <div className="card-body">
               <div className="flex justify-between items-center mb-6">
@@ -155,15 +156,17 @@ const HomePage = () => {
                   <div>
                     <h2 className="text-lg font-medium">Tổng số dư</h2>
                     <p className="text-3xl font-bold text-primary">
-                      {showBalance ? formatCurrency(totalBalance) : "****** đ"}
+                      {settings.showBalance
+                        ? formatCurrency(totalBalance)
+                        : "****** đ"}
                     </p>
                   </div>
                 </div>
                 <button
                   className="btn btn-ghost btn-circle"
-                  onClick={() => setShowBalance(!showBalance)}
+                  onClick={() => setShowBalance(!settings.showBalance)}
                 >
-                  {showBalance ? (
+                  {settings.showBalance ? (
                     <Eye className="w-5 h-5" />
                   ) : (
                     <EyeOff className="w-5 h-5" />
@@ -178,7 +181,9 @@ const HomePage = () => {
                     <span className="text-sm">Thu nhập</span>
                   </div>
                   <p className="text-xl font-bold text-success">
-                    {showBalance ? formatCurrency(totalIncome) : "****** đ"}
+                    {settings.showBalance
+                      ? formatCurrency(totalIncome)
+                      : "****** đ"}
                   </p>
                 </div>
 
@@ -188,7 +193,9 @@ const HomePage = () => {
                     <span className="text-sm">Chi tiêu</span>
                   </div>
                   <p className="text-xl font-bold text-error">
-                    {showBalance ? formatCurrency(totalExpense) : "****** đ"}
+                    {settings.showBalance
+                      ? formatCurrency(totalExpense)
+                      : "****** đ"}
                   </p>
                 </div>
               </div>
@@ -199,7 +206,7 @@ const HomePage = () => {
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
-            className="card bg-base-100 shadow-lg"
+            className="card bg-gradient-to-br from-base-100  to-secondary/5 border-2 border-secondary/20"
           >
             <div className="card-body">
               <div className="flex justify-between items-center mb-6">
@@ -359,90 +366,114 @@ const HomePage = () => {
               </Link>
             </motion.div>
           </motion.h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {userTransactions?.slice(0, 6).map((transaction, index) => (
-              <motion.div
-                onClick={() =>
-                  navigate(`/transactions/edit-transaction/${transaction.id}`)
-                }
-                key={transaction.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 * index }}
-                whileHover={{
-                  scale: 1.02,
-                  translateY: -5,
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
-                }}
-                className="bg-base-100 rounded-2xl p-4 transition-all border border-primary/20 cursor-pointer hover:border-primary/40"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/10 to-secondary/10 p-3 flex items-center justify-center">
-                    <img
-                      src={
-                        transaction.category.icon || "https://picsum.photos/200"
-                      }
-                      alt=""
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-base-content/90 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {transaction.category.type === "expense" ? (
-                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-error/10">
-                            <TrendingDown className="w-3 h-3 text-error" />
-                            <span className="text-xs text-error font-medium">
-                              Chi
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-success/10">
-                            <TrendingUp className="w-3 h-3 text-success" />
-                            <span className="text-xs text-success font-medium">
-                              Thu
-                            </span>
-                          </div>
-                        )}
-                        <span
-                          className="whitespace-nowrap truncate max-w-[100px]"
-                          title={transaction.category.name}
-                        >
-                          {transaction.category.name}
+          {userTransactions && userTransactions.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {userTransactions?.slice(0, 6).map((transaction, index) => (
+                <motion.div
+                  onClick={() =>
+                    navigate(`/transactions/edit-transaction/${transaction.id}`)
+                  }
+                  key={transaction.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 * index }}
+                  whileHover={{
+                    scale: 1.02,
+                    translateY: -5,
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+                  }}
+                  className="bg-base-100 rounded-2xl p-4 transition-all border border-primary/20 cursor-pointer hover:border-primary/40"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/10 to-secondary/10 p-3 flex items-center justify-center">
+                      <img
+                        src={
+                          transaction.category.icon ||
+                          "https://picsum.photos/200"
+                        }
+                        alt=""
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-base-content/90 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {transaction.category.type === "expense" ? (
+                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-error/10">
+                              <TrendingDown className="w-3 h-3 text-error" />
+                              <span className="text-xs text-error font-medium">
+                                Chi
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-success/10">
+                              <TrendingUp className="w-3 h-3 text-success" />
+                              <span className="text-xs text-success font-medium">
+                                Thu
+                              </span>
+                            </div>
+                          )}
+                          <span
+                            className="whitespace-nowrap truncate max-w-[100px]"
+                            title={transaction.category.name}
+                          >
+                            {transaction.category.name}
+                          </span>
+                        </div>
+                        <span className="text-sm text-base-content/60 flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {dayjs(transaction.transactionDate).format(
+                            "DD/MM/YYYY"
+                          )}
                         </span>
-                      </div>
-                      <span className="text-sm text-base-content/60 flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {dayjs(transaction.transactionDate).format(
-                          "DD/MM/YYYY"
-                        )}
-                      </span>
-                    </h3>
-                    <p className="text-sm text-base-content/60 truncate mt-1 flex items-center gap-1">
-                      <Notebook className="w-3 h-3" />
-                      {transaction.description || "Không có ghi chú"}
-                    </p>
-                    <div className="flex items-center justify-between mt-3">
-                      <div className="flex items-center gap-1 text-xs text-base-content/60 bg-base-200/50 px-2 py-1 rounded-full">
-                        <CreditCard className="w-3 h-3" />
-                        {transaction.wallet.name}
-                      </div>
-                      <p
-                        className={`text-lg font-bold font-mono ${
-                          transaction.category.type === "expense"
-                            ? "text-error"
-                            : "text-success"
-                        }`}
-                      >
-                        {transaction.category.type === "expense" ? "-" : "+"}
-                        {formatCurrency(transaction.amount)}
+                      </h3>
+                      <p className="text-sm text-base-content/60 truncate mt-1 flex items-center gap-1">
+                        <Notebook className="w-3 h-3" />
+                        {transaction.description || "Không có ghi chú"}
                       </p>
+                      <div className="flex items-center justify-between mt-3">
+                        <div className="flex items-center gap-1 text-xs text-base-content/60 bg-base-200/50 px-2 py-1 rounded-full">
+                          <CreditCard className="w-3 h-3" />
+                          {transaction.wallet.name}
+                        </div>
+                        <p
+                          className={`text-lg font-bold font-mono ${
+                            transaction.category.type === "expense"
+                              ? "text-error"
+                              : "text-success"
+                          }`}
+                        >
+                          {transaction.category.type === "expense" ? "-" : "+"}
+                          {formatCurrency(transaction.amount)}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col items-center justify-center p-8 bg-base-100 rounded-2xl"
+            >
+              <Receipt className="w-16 h-16 text-primary/30 mb-4" />
+              <h3 className="text-lg font-medium text-base-content/70 mb-2">
+                Chưa có giao dịch nào
+              </h3>
+              <p className="text-sm text-base-content/50 text-center mb-4">
+                Bạn chưa có giao dịch nào trong khoảng thời gian này
+              </p>
+              <Link
+                to="/transactions/add-transaction"
+                className="btn btn-primary btn-sm gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Thêm giao dịch mới
+              </Link>
+            </motion.div>
+          )}
         </div>
       </div>
 

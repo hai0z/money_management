@@ -65,7 +65,7 @@ const AddBudget = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 p-8">
+    <div className="min-h-screen bg-base-100 p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
         <div className="flex items-center justify-between mb-8 bg-base-100 p-4 rounded-xl shadow-sm">

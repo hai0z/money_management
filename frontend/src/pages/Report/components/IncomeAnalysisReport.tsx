@@ -10,6 +10,7 @@ import {
   DollarSign,
   Target,
   TrendingDown,
+  AlertTriangle,
 } from "lucide-react";
 import { formatCurrency } from "../../../utils/formatters";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -28,6 +29,7 @@ const IncomeAnalysisReport = () => {
   const [customEndDate, setCustomEndDate] = useState<string>("");
   const [wallets, setWallets] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [trends, setTrends] = useState<any[]>([]);
 
   const fetchWallets = async () => {
     try {
@@ -64,10 +66,76 @@ const IncomeAnalysisReport = () => {
       const response = await fetch(url);
       const data = await response.json();
       setReport(data);
-      console.log(data);
+      analyzeIncomeTrends(data);
     } catch (error) {
       console.error("Error fetching report:", error);
     }
+  };
+
+  const analyzeIncomeTrends = (data: any) => {
+    const newTrends: any = [];
+    const totalIncome = data?.totals?.totalIncome || 0;
+    const daysInRange = getDaysInRange(selectedPeriod);
+    const dailyAverage = totalIncome / daysInRange;
+
+    // Phân tích thu nhập trung bình
+    if (dailyAverage < 100000) {
+      newTrends.push({
+        icon: <TrendingDown className="w-6 h-6 text-error" />,
+        title: "Thu nhập thấp",
+        description: `Thu nhập trung bình ${formatCurrency(dailyAverage)}/ngày`,
+        type: "error",
+      });
+    }
+
+    // Phân tích danh mục thu nhập lớn nhất
+    const topIncomeCategory = data?.categoryAnalysis
+      ?.filter((cat: any) => cat.type === "income")
+      .sort((a: any, b: any) => Math.abs(b.total) - Math.abs(a.total))[0];
+
+    if (topIncomeCategory) {
+      const percentOfTotal =
+        (Math.abs(topIncomeCategory.total) / totalIncome) * 100;
+      if (percentOfTotal > 70) {
+        newTrends.push({
+          icon: <AlertTriangle className="w-6 h-6 text-warning" />,
+          title: `Thu nhập tập trung từ ${topIncomeCategory.name}`,
+          description: `${percentOfTotal.toFixed(1)}% thu nhập đến từ ${
+            topIncomeCategory.name
+          }`,
+          type: "warning",
+        });
+      }
+    }
+
+    // Phân tích xu hướng theo thời gian
+    const timeAnalysis = Object.values(data?.timeAnalysis || {});
+    if (timeAnalysis.length >= 2) {
+      const recentIncome = timeAnalysis
+        .slice(-3)
+        .reduce((sum: number, day: any) => sum + (day.income || 0), 0);
+      const previousIncome = timeAnalysis
+        .slice(-6, -3)
+        .reduce((sum: number, day: any) => sum + (day.income || 0), 0);
+
+      if (recentIncome > previousIncome * 1.2) {
+        newTrends.push({
+          icon: <TrendingUp className="w-6 h-6 text-success" />,
+          title: "Thu nhập tăng",
+          description: "Thu nhập có xu hướng tăng trong thời gian gần đây",
+          type: "success",
+        });
+      } else if (recentIncome < previousIncome * 0.8) {
+        newTrends.push({
+          icon: <TrendingDown className="w-6 h-6 text-error" />,
+          title: "Thu nhập giảm",
+          description: "Thu nhập có xu hướng giảm trong thời gian gần đây",
+          type: "error",
+        });
+      }
+    }
+
+    setTrends(newTrends);
   };
 
   useEffect(() => {
@@ -197,7 +265,7 @@ const IncomeAnalysisReport = () => {
     return 0;
   };
   return (
-    <div className="bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 min-h-screen">
+    <div className="bg-base-100 min-h-screen">
       <div className="max-w-7xl mx-auto p-8">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -232,6 +300,40 @@ const IncomeAnalysisReport = () => {
             </div>
           </div>
         </motion.div>
+
+        {/* Trends Analysis */}
+        {trends.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="grid grid-cols-3 gap-6 mb-8"
+          >
+            {trends.map((trend, index) => (
+              <div
+                key={index}
+                className={`card bg-base-100 shadow-xl border-l-4 ${
+                  trend.type === "success"
+                    ? "border-success"
+                    : trend.type === "warning"
+                    ? "border-warning"
+                    : "border-error"
+                }`}
+              >
+                <div className="card-body">
+                  <div className="flex items-center gap-3">
+                    {trend.icon}
+                    <div>
+                      <h3 className="font-bold">{trend.title}</h3>
+                      <p className="text-base-content/60">
+                        {trend.description}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        )}
 
         {/* Filters */}
         <motion.div
@@ -323,7 +425,7 @@ const IncomeAnalysisReport = () => {
               </div>
               <div className="stat-title">Tổng thu nhập</div>
               <div className="stat-value text-success">
-                {formatCurrency(report?.totals?.totalIncome)}
+                {formatCurrency(report?.totals?.totalIncome || 0)}
               </div>
               <div className="stat-desc">Trong kỳ báo cáo</div>
             </div>
@@ -342,7 +444,8 @@ const IncomeAnalysisReport = () => {
               <div className="stat-title">Thu nhập trung bình/ngày</div>
               <div className="stat-value text-success">
                 {formatCurrency(
-                  report?.totals?.totalIncome / getDaysInRange(selectedPeriod)
+                  (report?.totals?.totalIncome || 0) /
+                    getDaysInRange(selectedPeriod)
                 )}
               </div>
               <div className="stat-desc">
@@ -511,8 +614,8 @@ const IncomeAnalysisReport = () => {
                     <td colSpan={2}>Tổng cộng</td>
                     <td className="text-success text-right">
                       {formatCurrency(
-                        report?.categoryAnalysis
-                          ?.filter((cat: any) => cat.type === "income")
+                        (report?.categoryAnalysis || [])
+                          .filter((cat: any) => cat.type === "income")
                           .reduce(
                             (sum: number, cat: any) =>
                               sum + Math.abs(cat.total),
@@ -522,8 +625,8 @@ const IncomeAnalysisReport = () => {
                     </td>
                     <td className="text-right">
                       {formatCurrency(
-                        report?.categoryAnalysis
-                          ?.filter((cat: any) => cat.type === "income")
+                        (report?.categoryAnalysis || [])
+                          .filter((cat: any) => cat.type === "income")
                           .reduce(
                             (sum: number, cat: any) =>
                               sum + Math.abs(cat.dailyAverage),

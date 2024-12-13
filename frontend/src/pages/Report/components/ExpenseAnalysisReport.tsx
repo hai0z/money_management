@@ -11,6 +11,7 @@ import {
   DollarSign,
   TrendingDown,
   Target,
+  AlertTriangle,
 } from "lucide-react";
 import { formatCurrency } from "../../../utils/formatters";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -29,6 +30,7 @@ const ExpenseAnalysisReport = () => {
   const [customEndDate, setCustomEndDate] = useState<string>("");
   const [wallets, setWallets] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [trends, setTrends] = useState<any[]>([]);
 
   const fetchWallets = async () => {
     try {
@@ -65,10 +67,78 @@ const ExpenseAnalysisReport = () => {
       const response = await fetch(url);
       const data = await response.json();
       setReport(data);
-      console.log(data);
+      analyzeExpenseTrends(data);
     } catch (error) {
       console.error("Error fetching report:", error);
     }
+  };
+
+  const analyzeExpenseTrends = (data: any) => {
+    const newTrends: any[] = [];
+
+    // Phân tích tổng chi tiêu
+    const totalExpense = Math.abs(data?.totals?.totalExpense || 0);
+    const daysInRange = getDaysInRange(selectedPeriod);
+    const dailyAverage = totalExpense / daysInRange;
+
+    if (dailyAverage > 500000) {
+      // Ngưỡng 500k/ngày
+      newTrends.push({
+        icon: <AlertTriangle className="w-6 h-6 text-error" />,
+        title: "Chi tiêu cao",
+        description: `Chi tiêu trung bình ${formatCurrency(dailyAverage)}/ngày`,
+        type: "warning",
+      });
+    }
+
+    // Phân tích danh mục chi tiêu
+    const expenseCategories =
+      data?.categoryAnalysis?.filter((cat: any) => cat.type === "expense") ||
+      [];
+    if (expenseCategories.length > 0) {
+      const topExpenseCategory = expenseCategories.reduce(
+        (prev: any, current: any) =>
+          Math.abs(current.total) > Math.abs(prev.total) ? current : prev,
+        expenseCategories[0]
+      );
+
+      if (topExpenseCategory.total) {
+        const percentOfTotal =
+          (Math.abs(topExpenseCategory.total) / totalExpense) * 100;
+        if (percentOfTotal > 40) {
+          newTrends.push({
+            icon: <AlertTriangle className="w-6 h-6 text-warning" />,
+            title: `Chi tiêu tập trung vào ${topExpenseCategory.name}`,
+            description: `${percentOfTotal.toFixed(1)}% chi tiêu dành cho ${
+              topExpenseCategory.name
+            }`,
+            type: "warning",
+          });
+        }
+      }
+    }
+
+    // Phân tích xu hướng theo thời gian
+    const timeAnalysis = Object.values(data?.timeAnalysis || {});
+    if (timeAnalysis.length >= 2) {
+      const recentExpenses = timeAnalysis
+        .slice(-3)
+        .reduce((sum: number, day: any) => sum + Math.abs(day.expense || 0), 0);
+      const previousExpenses = timeAnalysis
+        .slice(-6, -3)
+        .reduce((sum: number, day: any) => sum + Math.abs(day.expense || 0), 0);
+
+      if (recentExpenses > previousExpenses * 1.2) {
+        newTrends.push({
+          icon: <TrendingUp className="w-6 h-6 text-warning" />,
+          title: "Chi tiêu gia tăng",
+          description: "Chi tiêu có xu hướng tăng trong thời gian gần đây",
+          type: "warning",
+        });
+      }
+    }
+
+    setTrends(newTrends);
   };
 
   useEffect(() => {
@@ -198,7 +268,7 @@ const ExpenseAnalysisReport = () => {
     return 0;
   };
   return (
-    <div className="bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 min-h-screen">
+    <div className="bg-base-100 min-h-screen">
       <div className="max-w-7xl mx-auto p-8">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -233,6 +303,40 @@ const ExpenseAnalysisReport = () => {
             </div>
           </div>
         </motion.div>
+
+        {/* Xu hướng chi tiêu */}
+        {trends.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="grid grid-cols-3 gap-6 mb-8"
+          >
+            {trends.map((trend, index) => (
+              <div
+                key={index}
+                className={`card bg-base-100 shadow-xl border-l-4 ${
+                  trend.type === "warning"
+                    ? "border-warning"
+                    : trend.type === "error"
+                    ? "border-error"
+                    : "border-success"
+                }`}
+              >
+                <div className="card-body">
+                  <div className="flex items-center gap-3">
+                    {trend.icon}
+                    <div>
+                      <h3 className="font-bold">{trend.title}</h3>
+                      <p className="text-base-content/60">
+                        {trend.description}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        )}
 
         {/* Filters */}
         <motion.div
@@ -423,7 +527,9 @@ const ExpenseAnalysisReport = () => {
                 </thead>
                 <tbody>
                   {report?.categoryAnalysis
-                    ?.filter((cat: any) => cat.type === "expense")
+                    ?.filter(
+                      (cat: any) => cat.type === "expense" && !cat.parentId
+                    )
                     .map((cat: any) => (
                       <tr
                         key={cat.id}
@@ -512,24 +618,27 @@ const ExpenseAnalysisReport = () => {
                     <td colSpan={2}>Tổng cộng</td>
                     <td className="text-error text-right">
                       {formatCurrency(
-                        report?.categoryAnalysis
-                          ?.filter((cat: any) => cat.type === "expense")
-                          .reduce(
-                            (sum: number, cat: any) =>
-                              sum + Math.abs(cat.total),
-                            0
-                          )
+                        (
+                          report?.categoryAnalysis?.filter(
+                            (cat: any) => cat.type === "expense"
+                          ) || []
+                        ).reduce(
+                          (sum: number, cat: any) => sum + Math.abs(cat.total),
+                          0
+                        )
                       )}
                     </td>
                     <td className="text-right">
                       {formatCurrency(
-                        report?.categoryAnalysis
-                          ?.filter((cat: any) => cat.type === "expense")
-                          .reduce(
-                            (sum: number, cat: any) =>
-                              sum + Math.abs(cat.dailyAverage),
-                            0
-                          )
+                        (
+                          report?.categoryAnalysis?.filter(
+                            (cat: any) => cat.type === "expense"
+                          ) || []
+                        ).reduce(
+                          (sum: number, cat: any) =>
+                            sum + Math.abs(cat.dailyAverage),
+                          0
+                        )
                       )}
                     </td>
                   </tr>

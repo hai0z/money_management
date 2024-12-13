@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Settings,
@@ -23,16 +23,57 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useAppStore } from "../../state/appSetting";
+
+interface UserData {
+  id: number;
+  username: string;
+  email: string;
+  fullName: string;
+  address?: string;
+  phone?: string;
+  avatar?: string;
+  birthDate?: string;
+}
 
 const Setting = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [theme, setTheme] = React.useState("winter");
+  const [userData, setUserData] = React.useState<UserData | null>(null);
+  const { settings, setTheme } = useAppStore();
+  const [showLogoutModal, setShowLogoutModal] = React.useState(false);
 
   const handleThemeChange = (newTheme: string) => {
-    setTheme(newTheme);
+    setTheme(newTheme as "light" | "dark");
     document.documentElement.setAttribute("data-theme", newTheme);
   };
+
+  const handleLogout = () => {
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    logout();
+    setShowLogoutModal(false);
+  };
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:3000/api/users/${user?.user?.id}`
+        );
+        const data = await response.json();
+        setUserData(data);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+
+    if (user?.user?.id) {
+      fetchUser();
+    }
+  }, [user]);
 
   const settingGroups = [
     {
@@ -52,6 +93,7 @@ const Setting = () => {
           description: "Thay đổi mật khẩu và cài đặt bảo mật",
           badge: "Quan trọng",
           badgeColor: "badge-error",
+          link: "/user/change-password",
         },
         {
           icon: <CreditCard className="w-5 h-5" />,
@@ -136,7 +178,7 @@ const Setting = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-base-100 to-base-200">
+    <div className="min-h-screen bg-base-100">
       <div className="max-w-[1400px] mx-auto p-8">
         <div className="flex gap-8">
           {/* Sidebar */}
@@ -151,9 +193,9 @@ const Setting = () => {
                   <div className="relative group mb-4">
                     <div className="w-28 h-28 rounded-full bg-gradient-to-br from-primary to-secondary p-1">
                       <div className="w-full h-full rounded-full bg-base-100 flex items-center justify-center overflow-hidden">
-                        {user?.user?.avatar ? (
+                        {userData?.avatar ? (
                           <img
-                            src={user.user.avatar}
+                            src={userData.avatar}
                             alt="avatar"
                             className="w-full h-full object-cover"
                           />
@@ -168,10 +210,10 @@ const Setting = () => {
                   </div>
 
                   <h2 className="text-xl font-bold text-base-content">
-                    {user?.user?.fullName || "Người dùng"}
+                    {userData?.fullName || "Người dùng"}
                   </h2>
                   <p className="text-base-content/60 text-sm mt-1">
-                    {user?.user?.email}
+                    {userData?.email}
                   </p>
 
                   <div className="divider my-4"></div>
@@ -179,7 +221,7 @@ const Setting = () => {
                   <div className="w-full">
                     <div className="flex items-center justify-between p-3 bg-base-200/50 rounded-xl">
                       <div className="flex items-center gap-2">
-                        {theme === "winter" ? (
+                        {settings.theme === "light" ? (
                           <Sun className="w-5 h-5 text-warning" />
                         ) : (
                           <Moon className="w-5 h-5 text-primary" />
@@ -188,19 +230,17 @@ const Setting = () => {
                       </div>
                       <select
                         className="select select-sm select-ghost"
-                        value={theme}
+                        value={settings.theme}
                         onChange={(e) => handleThemeChange(e.target.value)}
                       >
-                        <option value="winter">Sáng</option>
-                        <option value="dracula"> Dracular</option>
-                        <option value="synthwave">Synthwave</option>
-                        <option value="halloween">Halloween</option>
+                        <option value="garden">Sáng</option>
+                        <option value="dark">Tối</option>
                       </select>
                     </div>
                   </div>
 
                   <button
-                    onClick={logout}
+                    onClick={handleLogout}
                     className="btn btn-error btn-outline w-full mt-4 gap-2"
                   >
                     <LogOut className="w-4 h-4" />
@@ -221,9 +261,7 @@ const Setting = () => {
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
                 <Settings className="w-7 h-7 text-primary" />
               </div>
-              <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
-                Cài đặt hệ thống
-              </h1>
+              <h1 className="text-4xl font-bold ">Cài đặt hệ thống</h1>
             </motion.div>
 
             <div className="space-y-6">
@@ -279,6 +317,29 @@ const Setting = () => {
           </div>
         </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg">Xác nhận đăng xuất</h3>
+            <p className="py-4">
+              Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?
+            </p>
+            <div className="modal-action">
+              <button
+                className="btn btn-ghost"
+                onClick={() => setShowLogoutModal(false)}
+              >
+                Hủy
+              </button>
+              <button className="btn btn-error" onClick={confirmLogout}>
+                Đăng xuất
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

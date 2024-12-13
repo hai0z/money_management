@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { useAppStore } from "../state/appSetting";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -21,6 +22,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const savedUser = localStorage.getItem("user");
     return savedUser ? JSON.parse(savedUser) : null;
   });
+
+  const { settings } = useAppStore();
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", settings.theme);
+  }, [settings.theme]);
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");

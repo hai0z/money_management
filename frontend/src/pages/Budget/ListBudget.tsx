@@ -3,22 +3,16 @@ import { useNavigate } from "react-router-dom";
 import {
   CircleDollarSign,
   Plus,
-  Pencil,
-  Trash2,
-  AlertCircle,
-  ChevronRight,
   Calendar,
   TrendingUp,
   TrendingDown,
-  ArrowLeft,
-  MoreVertical,
   ArrowRight,
   List,
   LayoutGrid,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { formatCurrency } from "../../utils/formatters";
-import { toast } from "react-hot-toast";
+
 import dayjs from "dayjs";
 import { motion } from "framer-motion";
 
@@ -55,119 +49,78 @@ const ListBudget = () => {
     }
   }, [user?.user?.id]);
 
-  const handleDelete = async (id: number) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa ngân sách này?")) {
-      try {
-        const response = await fetch(
-          `http://localhost:3000/api/budgets/${id}`,
-          {
-            method: "DELETE",
-          }
-        );
-        if (response.ok) {
-          setBudgets(budgets.filter((budget) => budget.id !== id));
-          toast.success("Xóa ngân sách thành công");
-        } else {
-          toast.error("Có lỗi xảy ra khi xóa ngân sách");
-        }
-      } catch (error) {
-        toast.error("Có lỗi xảy ra khi xóa ngân sách");
-      }
-    }
-  };
-
   return (
-    <div className="bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 min-h-screen">
-      {/* Header Section */}
-      <div className="py-8">
-        <div className="max-w-7xl mx-auto px-8">
-          <div className="flex justify-between items-center">
-            <div>
-              <div className="flex items-center gap-1 ">
-                <h1 className="text-4xl font-extrabold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent flex items-center gap-4">
-                  <CircleDollarSign className="w-12 h-12 text-primary" />
-                  Quản lý ngân sách
-                </h1>
+    <div className="bg-base-100 min-h-screen">
+      <div className="max-w-7xl mx-auto p-8">
+        {/* Header Section */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-primary to-secondary p-8 rounded-3xl shadow-2xl mb-8 backdrop-blur-lg relative overflow-hidden"
+        >
+          <div className="absolute inset-0 bg-white/5 backdrop-blur-xl"></div>
+          <div className="relative z-10">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-lg">
+                  <CircleDollarSign className="w-8 h-8 text-primary-content" />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold text-primary-content">
+                    Quản lý ngân sách
+                  </h1>
+                  <p className="text-primary-content/80 mt-1">
+                    Theo dõi và kiểm soát chi tiêu của bạn
+                  </p>
+                </div>
               </div>
-              <p className="text-base-content/60 mt-4 text-lg">
-                Theo dõi và kiểm soát chi tiêu của bạn một cách hiệu quả
-              </p>
+              <motion.button
+                onClick={() => navigate("/budgets/add")}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="btn btn-lg glass text-primary-content gap-2 hover:bg-white/30"
+              >
+                <Plus className="w-6 h-6" />
+                Thêm ngân sách mới
+              </motion.button>
             </div>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate("/budgets/add")}
-              className="btn btn-primary btn-lg gap-3 shadow-xl hover:shadow-primary/30"
-            >
-              <Plus size={24} />
-              Thêm ngân sách mới
-            </motion.button>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6">
+                <p className="text-primary-content/90 font-medium flex items-center gap-2">
+                  <CircleDollarSign className="w-5 h-5" /> Tổng ngân sách
+                </p>
+                <h2 className="text-4xl font-bold text-primary-content mt-2">
+                  {formatCurrency(
+                    budgets.reduce((acc, curr) => acc + Number(curr.amount), 0)
+                  )}
+                </h2>
+              </div>
+              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6">
+                <p className="text-primary-content/90 font-medium flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" /> Còn lại
+                </p>
+                <h2 className="text-4xl font-bold text-primary-content mt-2">
+                  {formatCurrency(
+                    budgets.reduce(
+                      (acc, curr) => acc + (curr.amount - curr.spent),
+                      0
+                    )
+                  )}
+                </h2>
+              </div>
+              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6">
+                <p className="text-primary-content/90 font-medium flex items-center gap-2">
+                  <TrendingDown className="w-5 h-5" /> Đã chi tiêu
+                </p>
+                <h2 className="text-4xl font-bold text-primary-content mt-2">
+                  {formatCurrency(
+                    budgets.reduce((acc, curr) => acc + Number(curr.spent), 0)
+                  )}
+                </h2>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-
-      {/* Stats Overview */}
-      <div className="max-w-7xl mx-auto px-8">
-        <div className="grid grid-cols-3 gap-8 mb-12">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="stats shadow-xl bg-gradient-to-br from-base-100 to-primary/5"
-          >
-            <div className="stat">
-              <div className="stat-figure text-primary">
-                <CircleDollarSign className="w-8 h-8" />
-              </div>
-              <div className="stat-title">Tổng ngân sách</div>
-              <div className="stat-value text-primary">
-                {formatCurrency(
-                  budgets.reduce((acc, curr) => acc + Number(curr.amount), 0)
-                )}
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="stats shadow-xl bg-gradient-to-br from-base-100 to-success/5"
-          >
-            <div className="stat">
-              <div className="stat-figure text-success">
-                <TrendingUp className="w-8 h-8" />
-              </div>
-              <div className="stat-title">Còn lại</div>
-              <div className="stat-value text-success">
-                {formatCurrency(
-                  budgets.reduce(
-                    (acc, curr) => acc + (curr.amount - curr.spent),
-                    0
-                  )
-                )}
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="stats shadow-xl bg-gradient-to-br from-base-100 to-error/5"
-          >
-            <div className="stat">
-              <div className="stat-figure text-error">
-                <TrendingDown className="w-8 h-8" />
-              </div>
-              <div className="stat-title">Đã chi tiêu</div>
-              <div className="stat-value text-error">
-                {formatCurrency(
-                  budgets.reduce((acc, curr) => acc + Number(curr.spent), 0)
-                )}
-              </div>
-            </div>
-          </motion.div>
-        </div>
+        </motion.div>
 
         {/* Budget Cards */}
         <div className="flex justify-end mb-6">
@@ -216,47 +169,10 @@ const ListBudget = () => {
                             <CircleDollarSign className="text-primary w-10 h-10 relative z-10" />
                           </div>
                           <div className="flex flex-1 justify-center items-center">
-                            <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                            <h2 className="text-2xl font-bold">
                               {budget.name}
                             </h2>
                           </div>
-                        </div>
-                        <div className="dropdown dropdown-end">
-                          <label
-                            tabIndex={0}
-                            className="btn btn-ghost btn-sm btn-circle hover:bg-primary/10"
-                          >
-                            <MoreVertical size={16} />
-                          </label>
-                          <ul
-                            tabIndex={0}
-                            className="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-box w-52 border border-base-200 backdrop-blur-lg"
-                          >
-                            <li>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate(`/budgets/edit/${budget.id}`);
-                                }}
-                                className="flex items-center gap-2 text-base-content hover:bg-primary/10"
-                              >
-                                <Pencil size={16} />
-                                Chỉnh sửa
-                              </button>
-                            </li>
-                            <li>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDelete(budget.id);
-                                }}
-                                className="flex items-center gap-2 text-error hover:bg-error/10"
-                              >
-                                <Trash2 size={16} />
-                                Xóa
-                              </button>
-                            </li>
-                          </ul>
                         </div>
                       </div>
                       <div className="flex flex-col gap-2">
@@ -312,9 +228,7 @@ const ListBudget = () => {
                             animate={{ width: `${Math.min(progress, 100)}%` }}
                             transition={{ duration: 1, ease: "easeOut" }}
                             className={`h-full relative ${
-                              isOverBudget
-                                ? "bg-gradient-to-r from-error to-error/70"
-                                : "bg-gradient-to-r from-primary to-secondary"
+                              isOverBudget ? "bg-error" : "bg-primary"
                             }`}
                           >
                             <span className="absolute right-1 text-[10px] font-medium text-white leading-4">
@@ -375,7 +289,7 @@ const ListBudget = () => {
                           <CircleDollarSign className="w-6 h-6 text-primary group-hover:rotate-12 transition-transform" />
                         </div>
                         <div>
-                          <h2 className="text-xl font-mono font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                          <h2 className="text-xl font-mono font-bold">
                             {budget.name}
                           </h2>
                           <div className="flex items-center gap-3 mt-1">
@@ -418,9 +332,7 @@ const ListBudget = () => {
                               animate={{ width: `${Math.min(progress, 100)}%` }}
                               transition={{ duration: 1, ease: "easeOut" }}
                               className={`h-full ${
-                                isOverBudget
-                                  ? "bg-gradient-to-r from-error to-error/70"
-                                  : "bg-gradient-to-r from-primary to-secondary"
+                                isOverBudget ? "bg-error" : "bg-primary"
                               }`}
                             />
                           </div>

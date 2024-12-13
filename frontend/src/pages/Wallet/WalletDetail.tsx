@@ -12,6 +12,8 @@ import {
 import { motion } from "framer-motion";
 import { formatCurrency } from "../../utils/formatters";
 import dayjs from "dayjs";
+import { toast } from "react-hot-toast";
+import ReactApexChart from "react-apexcharts";
 
 const WalletDetail = () => {
   const { id } = useParams();
@@ -25,6 +27,94 @@ const WalletDetail = () => {
     dailyAverageExpense: 0,
   });
   const [selectedPeriod, setSelectedPeriod] = React.useState("month");
+  const [showDeleteModal, setShowDeleteModal] = React.useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = React.useState("");
+
+  const pieChartOptions = {
+    labels: ["Thu nhập", "Chi tiêu"],
+    colors: ["#36D399", "#F87272"],
+    legend: {
+      position: "bottom" as const,
+    },
+    chart: {
+      type: "donut" as const,
+      foreColor: "oklch(var(--bc))",
+    },
+    tooltip: {
+      y: {
+        formatter: (value: number) => formatCurrency(value),
+      },
+    },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: "70%",
+        },
+      },
+    },
+  };
+
+  const pieChartSeries = [periodStats.income, periodStats.expense];
+
+  const lineChartOptions = {
+    chart: {
+      type: "area" as const,
+      toolbar: {
+        show: false,
+      },
+      foreColor: "oklch(var(--bc))",
+    },
+    stroke: {
+      curve: "smooth" as const,
+      width: 2,
+    },
+    colors: ["#36D399", "#F87272"],
+    fill: {
+      type: "gradient",
+      gradient: {
+        shadeIntensity: 1,
+        opacityFrom: 0.7,
+        opacityTo: 0.2,
+        stops: [0, 90, 100],
+      },
+    },
+    xaxis: {
+      categories:
+        transactions?.wallets[0]?.categoryStats?.map((stat: any) =>
+          dayjs(stat.transactionDate).format("DD/MM")
+        ) || [],
+    },
+    yaxis: {
+      labels: {
+        formatter: function (value: number) {
+          return formatCurrency(value);
+        },
+      },
+    },
+    tooltip: {
+      theme: "dark",
+      y: {
+        formatter: (value: number) => formatCurrency(value),
+      },
+    },
+  };
+
+  const lineChartSeries = [
+    {
+      name: "Thu nhập",
+      data:
+        transactions?.wallets[0]?.categoryStats
+          ?.filter((stat: any) => stat.type === "income")
+          .map((stat: any) => +stat.total) || [],
+    },
+    {
+      name: "Chi tiêu",
+      data:
+        transactions?.wallets[0]?.categoryStats
+          ?.filter((stat: any) => stat.type === "expense")
+          .map((stat: any) => +stat.total) || [],
+    },
+  ];
 
   React.useEffect(() => {
     const fetchWalletDetails = async () => {
@@ -71,8 +161,32 @@ const WalletDetail = () => {
     { value: "year", label: "Năm nay" },
   ];
 
+  const handleDelete = async () => {
+    if (deleteConfirmation !== wallet?.name) {
+      toast.error("Tên ví không đúng");
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:3000/api/wallets/${id}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        toast.success("Ví đã được xóa thành công");
+        navigate("/wallet");
+      } else {
+        toast.error("Có lỗi xảy ra khi xóa ví");
+      }
+    } catch (error) {
+      toast.error("Có lỗi xảy ra khi xóa ví");
+    } finally {
+      setShowDeleteModal(false);
+      setDeleteConfirmation("");
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-r from-primary/5 via-secondary/5 to-primary/5">
+    <div className="min-h-screen bg-base-100">
       <div className="max-w-[1440px] mx-auto p-8">
         {/* Top Navigation Bar */}
         <div className="flex items-center justify-between mb-8 bg-base-100 p-4 rounded-xl shadow-sm">
@@ -99,21 +213,62 @@ const WalletDetail = () => {
                 className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52"
               >
                 <li>
-                  <Link to={`/wallet/edit/${id}`} className="text-warning">
+                  <Link to={`/wallet/edit/${id}`}>
                     <Edit3 className="w-4 h-4" />
                     Chỉnh sửa ví
                   </Link>
                 </li>
                 <li>
-                  <a className="text-error">
+                  <button
+                    className="text-error"
+                    onClick={() => setShowDeleteModal(true)}
+                  >
                     <Trash2 className="w-4 h-4" />
                     Xóa ví
-                  </a>
+                  </button>
                 </li>
               </ul>
             </div>
           </div>
         </div>
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-base-100 p-6 rounded-2xl w-[400px]">
+              <h3 className="text-lg font-bold mb-4">Xác nhận xóa ví</h3>
+              <p className="text-sm text-base-content/70 mb-4">
+                Nhập "<span className="font-bold">{wallet?.name}</span>" để xác
+                nhận xóa ví này. Hành động này không thể hoàn tác.
+              </p>
+              <input
+                type="text"
+                value={deleteConfirmation}
+                onChange={(e) => setDeleteConfirmation(e.target.value)}
+                className="input input-bordered w-full mb-4"
+                placeholder="Nhập tên ví để xác nhận"
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setDeleteConfirmation("");
+                  }}
+                >
+                  Hủy
+                </button>
+                <button
+                  className="btn btn-error"
+                  onClick={handleDelete}
+                  disabled={deleteConfirmation !== wallet?.name}
+                >
+                  Xóa ví
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-12 gap-8">
           {/* Left Column - Wallet Stats */}
@@ -207,12 +362,36 @@ const WalletDetail = () => {
                     </button>
                   ))}
                 </div>
+
+                {/* Pie Chart */}
+                <div className="mt-6">
+                  <ReactApexChart
+                    options={pieChartOptions}
+                    series={pieChartSeries}
+                    type="donut"
+                    height={250}
+                  />
+                </div>
               </div>
             </motion.div>
           </div>
 
           {/* Right Column - Transactions */}
           <div className="col-span-8 space-y-8">
+            {/* Line Chart */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-base-100 rounded-2xl shadow-lg overflow-hidden p-6"
+            >
+              <ReactApexChart
+                options={lineChartOptions}
+                series={lineChartSeries}
+                type="area"
+                height={350}
+              />
+            </motion.div>
+
             {/* Income Transactions */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -244,11 +423,8 @@ const WalletDetail = () => {
                         <td className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-lg bg-base-200 p-2">
                             <img
-                              src={
-                                transaction.category?.icon ||
-                                "https://picsum.photos/200/300"
-                              }
-                              alt=""
+                              src={transaction.icon}
+                              alt="x"
                               className="w-full h-full object-contain"
                             />
                           </div>
@@ -324,10 +500,7 @@ const WalletDetail = () => {
                         <td className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-lg bg-base-200 p-2">
                             <img
-                              src={
-                                transaction.category?.icon ||
-                                "https://picsum.photos/200/300"
-                              }
+                              src={transaction?.icon}
                               alt=""
                               className="w-full h-full object-contain"
                             />

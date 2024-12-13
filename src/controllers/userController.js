@@ -5,12 +5,20 @@ const userController = {
   // Đăng ký người dùng mới
   async register(req, res) {
     try {
-      const { username, password, email, fullName } = req.body;
+      const { username, password, fullName } = req.body;
+
+      // Check if username exists
+      const existingUsername = await prisma.user.findUnique({
+        where: { username },
+      });
+      if (existingUsername) {
+        return res.status(400).json({ error: "Username already exists" });
+      }
+
       const user = await prisma.user.create({
         data: {
           username,
           password, // Note: Remember to hash password in production
-          email,
           fullName,
         },
       });
@@ -55,12 +63,98 @@ const userController = {
   async updateUser(req, res) {
     try {
       const { id } = req.params;
-      const { email, fullName } = req.body;
+      const { username, email, fullName, address, phone, avatar, birthDate } =
+        req.body;
+
+      // Validate input data
+      if (email && !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
+
+      if (phone && !phone.match(/^\+?[0-9]{10,15}$/)) {
+        return res.status(400).json({ error: "Invalid phone number format" });
+      }
+
+      // Check if username exists
+      if (username) {
+        const existingUsername = await prisma.user.findFirst({
+          where: {
+            username,
+            NOT: {
+              id: parseInt(id),
+            },
+          },
+        });
+        if (existingUsername) {
+          return res.status(400).json({ error: "Username already exists" });
+        }
+      }
+
+      // Check if email exists
+      if (email) {
+        const existingEmail = await prisma.user.findFirst({
+          where: {
+            email,
+            NOT: {
+              id: parseInt(id),
+            },
+          },
+        });
+        if (existingEmail) {
+          return res.status(400).json({ error: "Email already exists" });
+        }
+      }
+
+      // Only include fields that are provided in the request
+      const updateData = {};
+      if (email) updateData.email = email;
+      if (fullName) updateData.fullName = fullName;
+      if (address) updateData.address = address;
+      if (phone) updateData.phone = phone;
+      if (avatar) updateData.avatar = avatar;
+      if (birthDate) updateData.birthDate = new Date(birthDate);
+      if (username) updateData.username = username;
+
       const user = await prisma.user.update({
         where: { id: parseInt(id) },
-        data: { email, fullName },
+        data: updateData,
       });
+
       res.json(user);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  },
+
+  // Đổi mật khẩu
+  async changePassword(req, res) {
+    try {
+      const { id } = req.params;
+      const { currentPassword, newPassword } = req.body;
+
+      // Kiểm tra mật khẩu hiện tại
+      const user = await prisma.user.findUnique({
+        where: { id: parseInt(id) },
+      });
+
+      if (!user || user.password !== currentPassword) {
+        return res.status(401).json({ error: "Current password is incorrect" });
+      }
+
+      // Validate mật khẩu mới
+      if (!newPassword || newPassword.length < 6) {
+        return res
+          .status(400)
+          .json({ error: "New password must be at least 6 characters long" });
+      }
+
+      // Cập nhật mật khẩu mới
+      const updatedUser = await prisma.user.update({
+        where: { id: parseInt(id) },
+        data: { password: newPassword },
+      });
+
+      res.json({ message: "Password changed successfully" });
     } catch (error) {
       res.status(400).json({ error: error.message });
     }

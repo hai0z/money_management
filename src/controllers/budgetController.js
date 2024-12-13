@@ -176,7 +176,7 @@ const budgetController = {
   async updateBudget(req, res) {
     try {
       const { id } = req.params;
-      const { amount, startDate, endDate } = req.body;
+      const { amount, startDate, endDate, name } = req.body;
 
       const budget = await prisma.budget.update({
         where: { id: parseInt(id) },
@@ -184,6 +184,7 @@ const budgetController = {
           amount: amount ? parseFloat(amount) : undefined,
           startDate: startDate ? new Date(startDate) : undefined,
           endDate: endDate ? new Date(endDate) : undefined,
+          name: name,
         },
         include: {
           transactions: {

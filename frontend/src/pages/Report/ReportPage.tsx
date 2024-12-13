@@ -14,7 +14,7 @@ import { Link } from "react-router-dom";
 const ReportPage = () => {
   return (
     <div className="min-h-screen ">
-      <div className="max-w-7xl mx-auto bg-gradient-to-r from-primary/5 via-secondary/5 to-primary/5  p-8">
+      <div className="max-w-7xl mx-auto bg-base-100 p-8">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -23,9 +23,7 @@ const ReportPage = () => {
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
             <ChartBar className="w-7 h-7 text-primary" />
           </div>
-          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
-            Báo cáo tài chính
-          </h1>
+          <h1 className="text-4xl font-bold">Báo cáo tài chính</h1>
         </motion.div>
 
         <motion.div

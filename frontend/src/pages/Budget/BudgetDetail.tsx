@@ -13,9 +13,14 @@ import {
   Rocket,
   Zap,
   LightbulbIcon,
+  MoreVertical,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { formatCurrency } from "../../utils/formatters";
 import dayjs from "dayjs";
+import { toast } from "react-hot-toast";
+import ReactApexChart from "react-apexcharts";
 
 interface Transaction {
   id: number;
@@ -44,6 +49,10 @@ const BudgetDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [budget, setBudget] = React.useState<Budget | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = React.useState(false);
+  const [confirmDelete, setConfirmDelete] = React.useState("");
+
+  const [spendingByCategory, setSpendingByCategory] = React.useState<any[]>([]);
 
   React.useEffect(() => {
     const fetchBudget = async () => {
@@ -55,8 +64,16 @@ const BudgetDetail = () => {
         console.error("Error fetching budget:", error);
       }
     };
+    const fetchStats = async () => {
+      const response = await fetch(
+        `http://localhost:3000/api/budgets/${id}/stats`
+      );
+      const data = await response.json();
+      setSpendingByCategory(data.spendingByCategory || []);
+    };
 
     fetchBudget();
+    fetchStats();
   }, [id]);
 
   if (!budget) return null;
@@ -114,12 +131,169 @@ const BudgetDetail = () => {
     };
   };
 
+  const handleDelete = async (id: number) => {
+    if (confirmDelete === budget.name) {
+      try {
+        const response = await fetch(
+          `http://localhost:3000/api/budgets/${id}`,
+          {
+            method: "DELETE",
+          }
+        );
+        if (response.ok) {
+          toast.success("Xóa ngân sách thành công");
+          navigate("/budgets");
+        } else {
+          toast.error("Có lỗi xảy ra khi xóa ngân sách");
+        }
+      } catch (error) {
+        toast.error("Có lỗi xảy ra khi xóa ngân sách");
+      }
+      setShowDeleteModal(false);
+    } else {
+      toast.error("Tên ngân sách không đúng");
+    }
+  };
+
   const advice = getSpendingAdvice();
 
+  // Chart options for spending by category
+  const pieChartOptions = {
+    chart: {
+      type: "pie" as const,
+      background: "transparent",
+      foreColor: "oklch(var(--bc))",
+    },
+
+    labels: spendingByCategory.map((stat) => stat.category.name),
+    colors: ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF"],
+    legend: {
+      position: "bottom" as const,
+      labels: {
+        colors: "oklch(var(--bc))", // Màu chữ cho legend
+      },
+    },
+    dataLabels: {
+      enabled: true,
+      formatter: function (val: number) {
+        return val.toFixed(1) + "%";
+      },
+      style: {
+        fontSize: "14px",
+        colors: ["#fff"],
+      },
+    },
+    tooltip: {
+      y: {
+        formatter: (value: number) => formatCurrency(value),
+      },
+    },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: "65%",
+        },
+      },
+    },
+    responsive: [
+      {
+        breakpoint: 480,
+        options: {
+          chart: {
+            width: 300,
+          },
+          legend: {
+            position: "bottom",
+          },
+        },
+      },
+    ],
+  };
+
+  // Chart options for spending trend
+  const lineChartOptions = {
+    chart: {
+      type: "line" as const,
+      background: "transparent",
+      foreColor: "oklch(var(--bc))",
+      toolbar: {
+        show: false,
+      },
+    },
+    stroke: {
+      curve: "smooth" as const,
+      width: 3,
+    },
+    xaxis: {
+      categories: budget.transactions
+        .map((t) => dayjs(t.transactionDate).format("DD/MM"))
+        .slice(-7),
+    },
+    yaxis: {
+      labels: {
+        formatter: (value: number) => formatCurrency(value),
+      },
+    },
+    colors: ["#FF6384"],
+    grid: {
+      borderColor: "#f1f1f1",
+    },
+    tooltip: {
+      theme: "dark",
+      y: {
+        formatter: (value: number) => formatCurrency(value),
+      },
+    },
+  };
+
+  const lineChartSeries = [
+    {
+      name: "Chi tiêu",
+      data: budget.transactions.map((t) => t.amount).slice(-7),
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
+    <div className="min-h-screen bg-base-100">
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-base-100 p-6 rounded-lg shadow-xl max-w-md w-full">
+            <h3 className="text-lg font-bold mb-4">Xác nhận xóa ngân sách</h3>
+            <p className="mb-4">
+              Nhập "<span className="font-bold">{budget.name}</span>" để xác
+              nhận xóa ngân sách này
+            </p>
+            <input
+              type="text"
+              value={confirmDelete}
+              onChange={(e) => setConfirmDelete(e.target.value)}
+              className="input input-bordered w-full mb-4"
+              placeholder="Nhập tên ngân sách"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                className="btn btn-ghost"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setConfirmDelete("");
+                }}
+              >
+                Hủy
+              </button>
+              <button
+                className="btn btn-error"
+                onClick={() => handleDelete(Number(id))}
+              >
+                Xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Top Navigation Bar */}
-      <div className="bg-base-100/80 backdrop-blur-xl border-b border-base-200 sticky top-0 z-50">
+      <div className="bg-base-100/80 backdrop-blur-xl border-b border-base-200 sticky top-0 z-20">
         <div className="max-w-[1440px] mx-auto px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <motion.div whileHover={{ x: -5 }} whileTap={{ scale: 0.95 }}>
@@ -136,6 +310,43 @@ const BudgetDetail = () => {
             >
               {budget.name}
             </motion.h1>
+          </div>
+          <div className="dropdown dropdown-end">
+            <label
+              tabIndex={0}
+              className="btn btn-ghost btn-sm btn-circle hover:bg-primary/10"
+            >
+              <MoreVertical size={16} />
+            </label>
+            <ul
+              tabIndex={0}
+              className="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-box w-52 border border-base-200 backdrop-blur-lg"
+            >
+              <li>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/budgets/edit/${budget.id}`);
+                  }}
+                  className="flex items-center gap-2 text-base-content hover:bg-primary/10"
+                >
+                  <Pencil size={16} />
+                  Chỉnh sửa
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDeleteModal(true);
+                  }}
+                  className="flex items-center gap-2 text-error hover:bg-error/10"
+                >
+                  <Trash2 size={16} />
+                  Xóa
+                </button>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
@@ -383,6 +594,45 @@ const BudgetDetail = () => {
             )}
           </div>
         </motion.div>
+
+        {/* Charts */}
+        <div className="grid grid-cols-2 gap-6 mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.55 }}
+            className="card bg-base-100 shadow-lg border border-base-200 hover:shadow-xl transition-all duration-300"
+          >
+            <div className="card-body">
+              <h3 className="text-lg font-bold mb-4">Chi tiêu theo danh mục</h3>
+              <ReactApexChart
+                options={pieChartOptions}
+                series={spendingByCategory.map((stat) => +stat.amount)}
+                type="pie"
+                height={350}
+              />
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="card bg-base-100 shadow-lg border border-base-200 hover:shadow-xl transition-all duration-300"
+          >
+            <div className="card-body">
+              <h3 className="text-lg font-bold mb-4">
+                Xu hướng chi tiêu 7 ngày qua
+              </h3>
+              <ReactApexChart
+                options={lineChartOptions}
+                series={lineChartSeries}
+                type="line"
+                height={350}
+              />
+            </div>
+          </motion.div>
+        </div>
 
         {/* Transactions */}
         <motion.div

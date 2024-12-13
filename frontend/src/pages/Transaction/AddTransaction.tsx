@@ -9,11 +9,11 @@ import {
   Wallet2,
   FileText,
   ArrowLeft,
-  ChevronRight,
   X,
   Target,
+  AlertTriangle,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const AnUongLogo = new URL(
   "../../assets/app_icon/an-uong/an-uong.png",
@@ -37,6 +37,7 @@ interface Budget {
 }
 
 const AddTransaction = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [categories, setCategories] = React.useState<Category[]>([]);
   const [type, setType] = React.useState<"expense" | "income">("expense");
@@ -47,6 +48,7 @@ const AddTransaction = () => {
   const [selectedParentCategory, setSelectedParentCategory] =
     React.useState<Category | null>(null);
   const [showSubcategories, setShowSubcategories] = React.useState(false);
+  const [showNoWalletWarning, setShowNoWalletWarning] = React.useState(false);
 
   // Form fields
   const [date, setDate] = React.useState<string>(
@@ -102,6 +104,11 @@ const AddTransaction = () => {
         setCategories(categoriesData);
         setUserWallets(walletsData);
         setUserBudgets(budgetsData);
+
+        // Check if user has no wallets
+        if (walletsData.length === 0) {
+          setShowNoWalletWarning(true);
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
       }
@@ -142,7 +149,7 @@ const AddTransaction = () => {
     selectedParentCategory?.id === categoryId;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 p-4">
+    <div className="min-h-screen bg-base-100 p-4">
       <div className="max-w-6xl mx-auto mt-8 ">
         <div className="flex gap-4 ">
           {/* Left Panel */}
@@ -241,7 +248,6 @@ const AddTransaction = () => {
                   <AnimatePresence>
                     {categories
                       .filter((c) => c.parentId === null && c.type === type)
-                      .slice(0, 10)
                       .map((category, index) => (
                         <motion.div
                           initial={{ opacity: 0, scale: 0.8 }}
@@ -406,7 +412,10 @@ const AddTransaction = () => {
               <h3 className="text-lg font-bold">Chọn danh mục con</h3>
               <button
                 className="btn btn-ghost btn-circle btn-sm"
-                onClick={() => setShowSubcategories(false)}
+                onClick={() => {
+                  handleSubcategorySelect(selectedParentCategory!);
+                  setShowSubcategories(false);
+                }}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -455,6 +464,44 @@ const AddTransaction = () => {
                     </p>
                   </motion.div>
                 ))}
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* No Wallet Warning Modal */}
+      {showNoWalletWarning && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="bg-base-100 rounded-xl p-6 w-[400px] shadow-xl"
+          >
+            <div className="flex flex-col items-center gap-4 text-center">
+              <div className="w-12 h-12 rounded-full bg-warning/20 flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-warning" />
+              </div>
+              <h3 className="text-lg font-bold">Bạn chưa có ví tiền nào</h3>
+              <p className="text-base-content/70">
+                Vui lòng tạo ít nhất một ví tiền để thêm giao dịch
+              </p>
+              <div className="flex gap-2 mt-2">
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  className="btn btn-primary btn-sm"
+                  onClick={() => navigate("/wallet/add")}
+                >
+                  Tạo ví tiền mới
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => window.history.back()}
+                >
+                  Quay lại
+                </motion.button>
+              </div>
             </div>
           </motion.div>
         </div>

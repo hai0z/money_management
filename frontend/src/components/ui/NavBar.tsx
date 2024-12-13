@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
 import { Minus, Square, X } from "lucide-react";
@@ -7,6 +7,16 @@ dayjs.locale("vi");
 const currentDate = dayjs().format("dddd, DD/MM/YYYY");
 
 const AppLogo = new URL("../../assets/image/wallet.png", import.meta.url).href;
+
+interface UserData {
+  id: number;
+  username: string;
+  email: string;
+  fullName: string;
+  address?: string;
+  phone?: string;
+  avatar?: string;
+}
 
 const NavBar = () => {
   const { logout } = useAuth();
@@ -52,37 +62,6 @@ const NavBar = () => {
             <span className="capitalize font-semibold text-lg">
               {currentDate}
             </span>
-          </div>
-          <div className="dropdown dropdown-end">
-            <div
-              tabIndex={0}
-              role="button"
-              className="btn btn-ghost btn-circle avatar"
-            >
-              <div className="w-10 rounded-full">
-                <img
-                  alt="Tailwind CSS Navbar component"
-                  src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"
-                />
-              </div>
-            </div>
-            <ul
-              tabIndex={0}
-              className="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow"
-            >
-              <li>
-                <a className="justify-between">
-                  Profile
-                  <span className="badge">New</span>
-                </a>
-              </li>
-              <li>
-                <a>Settings</a>
-              </li>
-              <li>
-                <a onClick={logout}>Logout</a>
-              </li>
-            </ul>
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
@@ -55,6 +55,7 @@ const EditTransaction = () => {
   const [showSubcategories, setShowSubcategories] = React.useState(false);
   const [selectedParentCategory, setSelectedParentCategory] =
     React.useState<Category | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = React.useState(false);
 
   React.useEffect(() => {
     const fetchTransaction = async () => {
@@ -143,6 +144,10 @@ const EditTransaction = () => {
       selectedParentCategory?.id === categoryId
     );
   };
+  useEffect(() => {
+    setSelectedCategory(null);
+    setSelectedParentCategory(null);
+  }, [type]);
 
   const updateTransaction = async () => {
     toast.promise(
@@ -172,28 +177,26 @@ const EditTransaction = () => {
   };
 
   const deleteTransaction = async () => {
-    if (confirm("Bạn có chắc chắn muốn xóa giao dịch này?")) {
-      toast.promise(
-        fetch(`http://localhost:3000/api/transactions/${id}`, {
-          method: "DELETE",
-        }).then(() => {
-          navigate(-1);
-        }),
-        {
-          loading: "Đang xóa giao dịch...",
-          success: "Xóa giao dịch thành công!",
-          error: "Có lỗi xảy ra khi xóa giao dịch",
-        }
-      );
-    }
+    toast.promise(
+      fetch(`http://localhost:3000/api/transactions/${id}`, {
+        method: "DELETE",
+      }).then(() => {
+        navigate(-1);
+      }),
+      {
+        loading: "Đang xóa giao dịch...",
+        success: "Xóa giao dịch thành công!",
+        error: "Có lỗi xảy ra khi xóa giao dịch",
+      }
+    );
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 p-4">
+    <div className="h-screen bg-base-100 p-4">
       <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-12 gap-4 h-[calc(100vh-2rem)]">
+        <div className="grid grid-cols-12 gap-4 ">
           {/* Left Column - Categories */}
-          <div className="col-span-8 h-full overflow-auto">
+          <div className="col-span-8 overflow-auto h-full">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -441,7 +444,10 @@ const EditTransaction = () => {
                   >
                     Cập nhật giao dịch
                   </button>
-                  <button onClick={deleteTransaction} className="btn btn-error">
+                  <button
+                    onClick={() => setShowDeleteModal(true)}
+                    className="btn btn-error"
+                  >
                     <Trash2 className="w-5 h-5" />
                     Xóa giao dịch
                   </button>
@@ -470,7 +476,10 @@ const EditTransaction = () => {
               <h3 className="text-xl font-bold">Chọn danh mục con</h3>
               <button
                 className="btn btn-ghost btn-circle btn-sm"
-                onClick={() => setShowSubcategories(false)}
+                onClick={() => {
+                  handleSubcategorySelect(selectedParentCategory!);
+                  setShowSubcategories(false);
+                }}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -524,6 +533,40 @@ const EditTransaction = () => {
                     </p>
                   </motion.div>
                 ))}
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="bg-base-100 rounded-2xl p-6 w-[400px] shadow-xl"
+          >
+            <h3 className="text-xl font-bold mb-4">Xác nhận xóa</h3>
+            <p className="text-base-content/70 mb-6">
+              Bạn có chắc chắn muốn xóa giao dịch này không? Hành động này không
+              thể hoàn tác.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                className="btn btn-ghost"
+                onClick={() => setShowDeleteModal(false)}
+              >
+                Hủy
+              </button>
+              <button
+                className="btn btn-error"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  deleteTransaction();
+                }}
+              >
+                Xóa
+              </button>
             </div>
           </motion.div>
         </div>

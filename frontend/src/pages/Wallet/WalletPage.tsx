@@ -1,8 +1,6 @@
 import React from "react";
 import {
   CirclePlus,
-  Pencil,
-  Trash2,
   Wallet,
   ArrowRight,
   Info,
@@ -62,14 +60,13 @@ const WalletAccountPage = () => {
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-7xl mx-auto bg-gradient-to-r from-primary/5 via-secondary/5 to-primary/5  p-8">
+      <div className="max-w-7xl mx-auto p-8">
         {/* Header Section */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-gradient-to-r from-primary to-secondary p-8 rounded-3xl shadow-2xl mb-8 backdrop-blur-lg relative overflow-hidden"
         >
-          <div className="absolute inset-0 bg-white/5 backdrop-blur-xl"></div>
           <div className="relative z-10">
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-4">
@@ -156,60 +153,79 @@ const WalletAccountPage = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                   onClick={() => navigate(`/wallet/${wallet.id}`)}
-                  className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-base-100 to-base-200 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group"
+                  className={`relative overflow-hidden rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group border border-white/20 aspect-video ${
+                    index % 4 === 0
+                      ? "bg-gradient-to-br from-amber-500 to-orange-500"
+                      : index % 4 === 1
+                      ? "bg-gradient-to-br from-indigo-500 to-violet-500"
+                      : index % 4 === 2
+                      ? "bg-gradient-to-br from-cyan-500 to-blue-500"
+                      : "bg-gradient-to-br from-rose-500 to-pink-500"
+                  }`}
                 >
                   {/* Decorative elements */}
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full -translate-y-16 translate-x-16" />
-                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-secondary/10 rounded-full translate-y-12 -translate-x-12" />
+                  <div className="absolute top-0 right-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMSkiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-30" />
 
-                  <div className="relative p-6 z-10">
-                    {/* Header */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                          <Wallet className="w-6 h-6 text-primary" />
-                        </div>
-                        <div>
-                          <h2 className="text-xl font-mono font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                            {wallet.name}
-                          </h2>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <History className="w-3.5 h-3.5 text-base-content/60" />
-                            <p className="text-sm text-base-content/60">
-                              {dayjs(wallet.createdAt).format("DD/MM/YYYY")}
-                            </p>
-                          </div>
-                        </div>
+                  {/* Thêm các hình trang trí */}
+                  <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+                  <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-white/10 rounded-full blur-xl" />
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full h-32 bg-white/5 rotate-12 scale-150 blur-2xl" />
+
+                  <div className="absolute top-4 right-4">
+                    <svg
+                      className="w-12 h-12 text-white/40"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        fill="currentColor"
+                        d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+                      />
+                    </svg>
+                  </div>
+
+                  <div className="relative p-6 z-10 h-full flex flex-col justify-between">
+                    <div>
+                      <div
+                        className={`w-12 h-8 rounded mb-6 ${
+                          index % 4 === 0
+                            ? "bg-amber-700"
+                            : index % 4 === 1
+                            ? "bg-indigo-700"
+                            : index % 4 === 2
+                            ? "bg-cyan-700"
+                            : "bg-rose-700"
+                        } relative overflow-hidden`}
+                      >
+                        {/* Thêm hiệu ứng lấp lánh */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
                       </div>
+                      <h2 className="font-mono text-xl tracking-wider text-white/90 mb-1">
+                        {wallet.name}
+                      </h2>
+                      <p className="text-sm text-white/60 font-mono">
+                        {dayjs(wallet.createdAt).format("MM/YY")}
+                      </p>
                     </div>
 
-                    {/* Balance Card */}
-                    <div className="mt-6 p-5 rounded-xl bg-gradient-to-br from-primary/10 via-base-100 to-secondary/10 border border-base-300">
-                      <p className="text-sm font-medium text-base-content/70">
+                    <div>
+                      <p className="text-sm font-medium text-white/70 mb-1">
                         Số dư hiện tại
                       </p>
-                      <h3 className="text-3xl font-bold mt-1 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                      <h3 className="font-mono text-2xl font-bold text-white tracking-wider relative inline-block">
                         {formatCurrency(wallet.balance)}
+                        <div className="absolute bottom-0 left-0 w-full h-0.5 bg-white/30 rounded-full transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
                       </h3>
                     </div>
 
-                    {/* Subtle indicator for clickable */}
-                    <div className="absolute bottom-0 mb-1 mt-2 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0 flex items-center gap-2">
+                    <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300">
                       <motion.div
                         initial={{ x: 10 }}
                         animate={{ x: 0 }}
-                        transition={{ duration: 0.2 }}
+                        className="flex items-center gap-2 text-white/90 bg-white/10 px-3 py-1.5 rounded-full backdrop-blur-sm"
                       >
-                        <ArrowRight className="w-4 h-4 text-primary" />
+                        <span className="text-sm">Xem chi tiết</span>
+                        <ArrowRight className="w-4 h-4" />
                       </motion.div>
-                      <motion.span
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.1 }}
-                        className="text-sm text-primary"
-                      >
-                        Xem chi tiết
-                      </motion.span>
                     </div>
                   </div>
                 </motion.div>

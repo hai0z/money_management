@@ -13,6 +13,7 @@ import {
   History,
   Search,
   FileText,
+  Filter,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -24,6 +25,9 @@ const HistoryPage = () => {
   const [transactions, setTransactions] = React.useState<any>(null);
   const [period, setPeriod] = React.useState<string>("month");
   const [searchTerm, setSearchTerm] = React.useState("");
+  const [transactionType, setTransactionType] = React.useState<
+    "all" | "income" | "expense"
+  >("all");
   const [dateRange, setDateRange] = React.useState({
     start: dayjs().format("YYYY-MM-DD"),
     end: dayjs().format("YYYY-MM-DD"),
@@ -59,88 +63,95 @@ const HistoryPage = () => {
   React.useEffect(() => {
     if (!transactions) return;
 
-    if (searchTerm.trim() === "") {
-      setFilteredTransactions(transactions);
-      return;
+    let filtered = { ...transactions };
+
+    // Filter by transaction type
+    if (transactionType !== "all") {
+      filtered = {
+        ...filtered,
+        groupedTransactions: Object.keys(filtered.groupedTransactions).reduce(
+          (acc: any, date) => {
+            const filteredDayTransactions = filtered.groupedTransactions[
+              date
+            ].transactions.filter(
+              (transaction: any) =>
+                transaction.category.type === transactionType
+            );
+
+            if (filteredDayTransactions.length > 0) {
+              acc[date] = {
+                ...filtered.groupedTransactions[date],
+                transactions: filteredDayTransactions,
+                totalIncome: filteredDayTransactions
+                  .filter((t: any) => t.category.type === "income")
+                  .reduce((sum: number, t: any) => sum + Number(t.amount), 0),
+                totalExpense: filteredDayTransactions
+                  .filter((t: any) => t.category.type === "expense")
+                  .reduce((sum: number, t: any) => sum + Number(t.amount), 0),
+              };
+            }
+            return acc;
+          },
+          {}
+        ),
+      };
     }
 
-    const searchResults = {
-      ...transactions,
-      groupedTransactions: Object.keys(transactions.groupedTransactions).reduce(
-        (acc: any, date) => {
-          const filteredDayTransactions = transactions.groupedTransactions[
-            date
-          ].transactions.filter(
-            (transaction: any) =>
-              transaction.category.name
-                .toLowerCase()
-                .includes(searchTerm.toLowerCase()) ||
-              transaction.description
-                ?.toLowerCase()
-                .includes(searchTerm.toLowerCase()) ||
-              transaction.wallet.name
-                .toLowerCase()
-                .includes(searchTerm.toLowerCase()) ||
-              formatCurrency(transaction.amount).includes(searchTerm)
-          );
+    // Filter by search term
+    if (searchTerm.trim() !== "") {
+      filtered = {
+        ...filtered,
+        groupedTransactions: Object.keys(filtered.groupedTransactions).reduce(
+          (acc: any, date) => {
+            const filteredDayTransactions = filtered.groupedTransactions[
+              date
+            ].transactions.filter(
+              (transaction: any) =>
+                transaction.category.name
+                  .toLowerCase()
+                  .includes(searchTerm.toLowerCase()) ||
+                transaction.description
+                  ?.toLowerCase()
+                  .includes(searchTerm.toLowerCase()) ||
+                transaction.wallet.name
+                  .toLowerCase()
+                  .includes(searchTerm.toLowerCase()) ||
+                formatCurrency(transaction.amount).includes(searchTerm)
+            );
 
-          if (filteredDayTransactions.length > 0) {
-            acc[date] = {
-              ...transactions.groupedTransactions[date],
-              transactions: filteredDayTransactions,
-              totalIncome: filteredDayTransactions
-                .filter((t: any) => t.category.type === "income")
-                .reduce((sum: number, t: any) => sum + Number(t.amount), 0),
-              totalExpense: filteredDayTransactions
-                .filter((t: any) => t.category.type === "expense")
-                .reduce((sum: number, t: any) => sum + Number(t.amount), 0),
-            };
-          }
-          return acc;
-        },
-        {}
-      ),
-      periodSummary: {
-        ...transactions.periodSummary,
-        totalIncome: Object.values(transactions.groupedTransactions)
-          .flatMap((group: any) => group.transactions)
-          .filter(
-            (t: any) =>
-              t.category.type === "income" &&
-              (t.category.name
-                .toLowerCase()
-                .includes(searchTerm.toLowerCase()) ||
-                t.description
-                  ?.toLowerCase()
-                  .includes(searchTerm.toLowerCase()) ||
-                t.wallet.name
-                  .toLowerCase()
-                  .includes(searchTerm.toLowerCase()) ||
-                formatCurrency(t.amount).includes(searchTerm))
-          )
-          .reduce((sum: number, t: any) => sum + Number(t.amount), 0),
-        totalExpense: Object.values(transactions.groupedTransactions)
-          .flatMap((group: any) => group.transactions)
-          .filter(
-            (t: any) =>
-              t.category.type === "expense" &&
-              (t.category.name
-                .toLowerCase()
-                .includes(searchTerm.toLowerCase()) ||
-                t.description
-                  ?.toLowerCase()
-                  .includes(searchTerm.toLowerCase()) ||
-                t.wallet.name
-                  .toLowerCase()
-                  .includes(searchTerm.toLowerCase()) ||
-                formatCurrency(t.amount).includes(searchTerm))
-          )
-          .reduce((sum: number, t: any) => sum + Number(t.amount), 0),
-      },
+            if (filteredDayTransactions.length > 0) {
+              acc[date] = {
+                ...filtered.groupedTransactions[date],
+                transactions: filteredDayTransactions,
+                totalIncome: filteredDayTransactions
+                  .filter((t: any) => t.category.type === "income")
+                  .reduce((sum: number, t: any) => sum + Number(t.amount), 0),
+                totalExpense: filteredDayTransactions
+                  .filter((t: any) => t.category.type === "expense")
+                  .reduce((sum: number, t: any) => sum + Number(t.amount), 0),
+              };
+            }
+            return acc;
+          },
+          {}
+        ),
+      };
+    }
+
+    // Update period summary
+    filtered.periodSummary = {
+      totalIncome: Object.values(filtered.groupedTransactions)
+        .flatMap((group: any) => group.transactions)
+        .filter((t: any) => t.category.type === "income")
+        .reduce((sum: number, t: any) => sum + Number(t.amount), 0),
+      totalExpense: Object.values(filtered.groupedTransactions)
+        .flatMap((group: any) => group.transactions)
+        .filter((t: any) => t.category.type === "expense")
+        .reduce((sum: number, t: any) => sum + Number(t.amount), 0),
     };
 
-    setFilteredTransactions(searchResults);
-  }, [searchTerm, transactions]);
+    setFilteredTransactions(filtered);
+  }, [searchTerm, transactions, transactionType]);
 
   const totalTransactions = React.useMemo(() => {
     if (!filteredTransactions?.groupedTransactions) return 0;
@@ -152,7 +163,7 @@ const HistoryPage = () => {
 
   return (
     <div className="min-h-screen ">
-      <div className="max-w-7xl mx-auto bg-gradient-to-r from-primary/5 via-secondary/5 to-primary/5 p-8 h-full">
+      <div className="max-w-7xl mx-auto bg-base-100 p-8 h-full">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -160,9 +171,7 @@ const HistoryPage = () => {
           className="flex items-center gap-3 mb-8"
         >
           <History className="w-8 h-8 text-primary" />
-          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
-            Lịch sử giao dịch
-          </h1>
+          <h1 className="text-4xl font-bold ">Lịch sử giao dịch</h1>
         </motion.div>
 
         <motion.div
@@ -187,6 +196,20 @@ const HistoryPage = () => {
                   </div>
 
                   <div className="flex gap-4">
+                    <select
+                      className="select select-primary min-w-[180px] bg-base-100"
+                      value={transactionType}
+                      onChange={(e) =>
+                        setTransactionType(
+                          e.target.value as "all" | "income" | "expense"
+                        )
+                      }
+                    >
+                      <option value="all">Tất cả giao dịch</option>
+                      <option value="income">Khoản thu</option>
+                      <option value="expense">Khoản chi</option>
+                    </select>
+
                     <select
                       className="select select-primary min-w-[180px] bg-base-100"
                       value={period}

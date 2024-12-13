@@ -479,6 +479,7 @@ const transactionController = {
               total: 0,
               description: transaction.description,
               transactionDate: transaction.transactionDate,
+              icon: transaction.category.icon,
             };
           }
           acc[categoryId].total += parseFloat(transaction.amount);
@@ -662,8 +663,9 @@ const transactionController = {
 
       // Calculate daily averages for categories
       Object.values(categoryAnalysis).forEach((category) => {
-        const daysDiff =
-          Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+        const daysDiff = Math.ceil(
+          (endDate - startDate) / (1000 * 60 * 60 * 24)
+        );
         category.dailyAverage = category.total / daysDiff;
       });
 
